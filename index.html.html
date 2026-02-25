@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Barista Quiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0b09;
+    --surface: #1a1410;
+    --card: #231a14;
+    --border: #3a2a1e;
+    --amber: #d4873a;
+    --amber-light: #f0a855;
+    --cream: #f2e8d9;
+    --muted: #7a6555;
+    --correct: #4caf82;
+    --wrong: #e05c5c;
+    --correct-bg: #0d2e1e;
+    --wrong-bg: #2e0d0d;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--cream);
+    font-family: 'Lato', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 4rem;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 40vh;
+    background: radial-gradient(ellipse at 50% 0%, rgba(212,135,58,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* ── SCREENS ── */
+  .screen { width: 100%; max-width: 680px; display: none; }
+  .screen.active { display: flex; flex-direction: column; align-items: center; }
+
+  /* ── START SCREEN ── */
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3.5rem, 10vw, 6rem);
+    letter-spacing: 0.05em;
+    color: var(--amber);
+    line-height: 0.9;
+    text-align: center;
+    margin-top: 3rem;
+  }
+
+  .logo span { color: var(--cream); }
+
+  .tagline {
+    margin-top: 1rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .divider {
+    width: 60px;
+    height: 1px;
+    background: var(--border);
+    margin: 2rem auto;
+  }
+
+  .category-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    width: 100%;
+    margin-bottom: 2rem;
+  }
+
+  .cat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--amber);
+    transform: scaleY(0);
+    transform-origin: bottom;
+    transition: transform 0.2s;
+  }
+
+  .cat-card.selected {
+    border-color: var(--amber);
+    background: #2a1e12;
+  }
+
+  .cat-card.selected::before { transform: scaleY(1); }
+
+  .cat-card:hover { border-color: rgba(212,135,58,0.5); }
+
+  .cat-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.05em;
+    color: var(--amber-light);
+    margin-bottom: 0.3rem;
+  }
+
+  .cat-count {
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  .cat-check {
+    position: absolute;
+    top: 0.75rem; right: 0.75rem;
+    width: 18px; height: 18px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem;
+    transition: all 0.2s;
+  }
+
+  .cat-card.selected .cat-check {
+    background: var(--amber);
+    border-color: var(--amber);
+    color: var(--bg);
+  }
+
+  .start-info {
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .btn-primary {
+    background: var(--amber);
+    color: var(--bg);
+    border: none;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 0.1em;
+    padding: 0.9rem 3rem;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .btn-primary:hover { background: var(--amber-light); }
+  .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* ── QUIZ SCREEN ── */
+  .quiz-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .quiz-meta {
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .quiz-score-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    color: var(--amber);
+    letter-spacing: 0.1em;
+  }
+
+  .progress-wrap {
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 2.5rem;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: var(--amber);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  .cat-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 0.75rem;
+    opacity: 0.8;
+  }
+
+  .question-text {
+    font-family: 'Lato', sans-serif;
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
+    font-weight: 700;
+    line-height: 1.5;
+    color: var(--cream);
+    margin-bottom: 2rem;
+    width: 100%;
+  }
+
+  .options {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+  }
+
+  .option {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    text-align: left;
+    font-family: 'Lato', sans-serif;
+    font-size: 0.9rem;
+    color: var(--cream);
+    line-height: 1.5;
+    width: 100%;
+  }
+
+  .option:hover:not(:disabled) {
+    border-color: var(--amber);
+    background: #2a1e12;
+  }
+
+  .option-letter {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    color: var(--muted);
+    min-width: 20px;
+    letter-spacing: 0.05em;
+    margin-top: 1px;
+    transition: color 0.15s;
+  }
+
+  .option:hover:not(:disabled) .option-letter { color: var(--amber); }
+
+  .option.correct {
+    border-color: var(--correct);
+    background: var(--correct-bg);
+    cursor: default;
+  }
+
+  .option.correct .option-letter { color: var(--correct); }
+
+  .option.wrong {
+    border-color: var(--wrong);
+    background: var(--wrong-bg);
+    cursor: default;
+  }
+
+  .option.wrong .option-letter { color: var(--wrong); }
+
+  .option.dimmed {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  .option:disabled { cursor: default; }
+
+  .feedback-box {
+    width: 100%;
+    padding: 1rem 1.25rem;
+    border-radius: 4px;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    display: none;
+    animation: fadeUp 0.25s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .feedback-box.correct-fb {
+    display: block;
+    background: var(--correct-bg);
+    border: 1px solid var(--correct);
+    color: #a8e6c5;
+  }
+
+  .feedback-box.wrong-fb {
+    display: block;
+    background: var(--wrong-bg);
+    border: 1px solid var(--wrong);
+    color: #f0a8a8;
+  }
+
+  .feedback-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.4rem;
+  }
+
+  .correct-fb .feedback-label { color: var(--correct); }
+  .wrong-fb .feedback-label { color: var(--wrong); }
+
+  .next-btn {
+    background: transparent;
+    border: 1px solid var(--amber);
+    color: var(--amber);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.1em;
+    padding: 0.75rem 2.5rem;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: none;
+    align-self: flex-end;
+  }
+
+  .next-btn.visible { display: block; }
+  .next-btn:hover { background: var(--amber); color: var(--bg); }
+
+  /* ── RESULTS SCREEN ── */
+  .result-header {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3rem, 8vw, 5rem);
+    color: var(--amber);
+    letter-spacing: 0.05em;
+    text-align: center;
+    margin-top: 2rem;
+    line-height: 1;
+  }
+
+  .result-sub {
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 0.5rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .score-circle {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    border: 3px solid var(--amber);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 2.5rem;
+    position: relative;
+  }
+
+  .score-circle::before {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+  }
+
+  .score-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3.5rem;
+    color: var(--amber-light);
+    line-height: 1;
+    letter-spacing: 0.05em;
+  }
+
+  .score-denom {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .result-message {
+    font-size: 1rem;
+    color: var(--cream);
+    text-align: center;
+    max-width: 400px;
+    line-height: 1.7;
+    margin-bottom: 2rem;
+    font-weight: 300;
+  }
+
+  .cat-breakdown {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .cat-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.75rem 1rem;
+  }
+
+  .cat-row-name {
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    flex: 1;
+  }
+
+  .cat-row-score {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    color: var(--amber);
+    letter-spacing: 0.05em;
+    min-width: 48px;
+    text-align: right;
+  }
+
+  .cat-bar-wrap {
+    flex: 2;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .cat-bar-fill {
+    height: 100%;
+    background: var(--amber);
+    border-radius: 2px;
+    transition: width 0.6s ease;
+  }
+
+  .result-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.1em;
+    padding: 0.75rem 2rem;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover { border-color: var(--amber); color: var(--amber); }
+
+  @media (max-width: 480px) {
+    .category-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- START SCREEN -->
+<div class="screen active" id="start-screen">
+  <div class="logo">BARISTA<br><span>QUIZ</span></div>
+  <div class="tagline">Test your coffee knowledge</div>
+  <div class="divider"></div>
+
+  <p class="start-info">Select the categories you want to be tested on</p>
+
+  <div class="category-grid" id="cat-grid"></div>
+
+  <p class="start-info" id="q-count-label">— select categories above —</p>
+  <button class="btn-primary" id="start-btn" disabled onclick="startQuiz()">Start Quiz</button>
+</div>
+
+<!-- QUIZ SCREEN -->
+<div class="screen" id="quiz-screen">
+  <div class="quiz-header" style="width:100%">
+    <div class="quiz-meta" id="q-counter">Question 1 of 20</div>
+    <div class="quiz-score-display" id="score-display">0 / 0</div>
+  </div>
+  <div class="progress-wrap" style="width:100%">
+    <div class="progress-bar" id="progress-bar"></div>
+  </div>
+  <div style="width:100%">
+    <div class="cat-label" id="q-cat-label"></div>
+    <div class="question-text" id="question-text"></div>
+    <div class="options" id="options-container"></div>
+    <div class="feedback-box" id="feedback-box">
+      <div class="feedback-label" id="feedback-label"></div>
+      <div id="feedback-body"></div>
+    </div>
+    <button class="next-btn" id="next-btn" onclick="nextQuestion()">Next →</button>
+  </div>
+</div>
+
+<!-- RESULTS SCREEN -->
+<div class="screen" id="results-screen">
+  <div class="result-header">Results</div>
+  <div class="result-sub">Quiz complete</div>
+  <div class="score-circle">
+    <div class="score-number" id="final-score">—</div>
+    <div class="score-denom" id="final-total">correct</div>
+  </div>
+  <p class="result-message" id="result-message"></p>
+  <div class="cat-breakdown" id="cat-breakdown"></div>
+  <div class="result-actions">
+    <button class="btn-secondary" onclick="restartSame()">Retry same categories</button>
+    <button class="btn-primary" onclick="backToStart()" style="max-width:220px">Choose new categories</button>
+  </div>
+</div>
+
+<script>
+// ── ALL QUESTIONS ──
+const allQuestions = [
+
+  { cat: "Arabica vs Robusta",
+    q: "A customer tells you they always drink Robusta because it gives them a stronger kick. You know the café uses single-origin Arabica. What is the most accurate thing to tell them?",
+    options: [
+      "Arabica has roughly the same caffeine as Robusta, so there will be no difference",
+      "You should add an extra shot of Arabica to match the caffeine of a single Robusta-based drink",
+      "Robusta is banned in specialty cafés due to its poor flavour, so you cannot offer it",
+      "Arabica has around half the caffeine of Robusta, but a well-extracted espresso can taste bolder and more intense than Robusta, which tends to be harsh on its own"
+    ],
+    answer: 3,
+    explain: "Robusta does have roughly double the caffeine of Arabica (~2.7% vs ~1.5%). However, strength means different things — caffeine level versus flavour intensity. A well-extracted Arabica espresso is often more flavourful and satisfying than Robusta, which tastes bitter and rubbery on its own. This is worth explaining so the customer can make an informed choice." },
+
+  { cat: "Arabica vs Robusta",
+    q: "You notice a bag of coffee is labelled 'SHB'. A colleague says this just means it is shade-grown. Are they correct, and what does SHB actually mean?",
+    options: [
+      "Incorrect — SHB stands for Strictly Hard Bean, meaning the coffee was grown above 1,200m where slow ripening produces a denser, more complex bean",
+      "Correct — SHB means shade-grown highland bean, which describes the growing environment",
+      "Incorrect — SHB stands for Single Harvest Batch, indicating one crop per year with no blending",
+      "Correct — SHB and shade-grown mean the same thing in specialty coffee grading"
+    ],
+    answer: 0,
+    explain: "SHB — Strictly Hard Bean — is an altitude grading term, not a description of shade cover. It indicates the coffee was grown above 1,200m. Cooler temperatures at altitude slow the cherry's maturation, giving it more time to develop the complex sugars and organic acids that create nuanced flavour." },
+
+  { cat: "Arabica vs Robusta",
+    q: "Two coffees from the same Ethiopian farm are processed differently — one washed, one natural. A customer asks why they taste so different even though the beans come from the same place. What is the best explanation?",
+    options: [
+      "The difference is entirely due to how they were roasted — processing has no effect on flavour",
+      "Natural processed coffees are always lower quality, so the difference is a sign of inconsistency at the farm",
+      "Processing determines how much of the fruit's fermented sugars transfer into the bean during drying, dramatically changing sweetness, body, and aroma",
+      "The two coffees must have been picked at different times of year, which explains the taste difference"
+    ],
+    answer: 2,
+    explain: "Processing is one of the most powerful flavour variables in coffee. A washed Ethiopian is clean, bright, and floral. The same farm's natural-processed coffee will taste fruity, heavy, and wine-like because the cherry ferments around the seed during a 3–6 week drying period, transferring its sugars and aromatics into the bean." },
+
+  { cat: "Arabica vs Robusta",
+    q: "A bag of coffee is described as a Gesha variety. A colleague assumes this means it is from Japan. What would you tell them?",
+    options: [
+      "They are correct — Gesha (or Geisha) was developed in Japan as a premium cultivar",
+      "Gesha originated in Ethiopia and was made famous through Panamanian farms — it is known for an intense floral profile of jasmine, bergamot, and stone fruit",
+      "Gesha is a blend of Ethiopian and Kenyan beans, not a single variety",
+      "Gesha is just a marketing name — there is no meaningful difference from standard Arabica"
+    ],
+    answer: 1,
+    explain: "Gesha originated in the Gesha region of Ethiopia. It was brought to Central America and made internationally famous by Hacienda La Esmeralda in Panama. Its intensely floral, tea-like character — jasmine, bergamot, stone fruit — makes it one of the most distinctive and expensive coffees in the world. Nothing to do with Japan." },
+
+  { cat: "Arabica vs Robusta",
+    q: "You are dialling in an espresso with a new bag of Arabica grown at 1,800m. Compared to a lower-altitude Arabica you used last week, why might this one need a slightly finer grind?",
+    options: [
+      "Higher altitude beans contain more moisture and need longer extraction to drive it off",
+      "Lower altitude beans are softer and grind finer by default, so the higher altitude bean needs coarser to match",
+      "Altitude has no effect on grind — you would change dose, not grind size",
+      "High-altitude Arabica beans grow more slowly, producing a denser bean that is harder for water to penetrate and needs more resistance compensation via grind"
+    ],
+    answer: 3,
+    explain: "High-altitude Arabica grows slowly in cool conditions, producing a denser, harder bean (hence the SHB grading). Denser beans are physically harder for water to extract from — going slightly finer increases resistance and extraction time, compensating for this density. This is one reason dialling in is needed every time you switch bags." },
+
+  { cat: "Arabica vs Robusta",
+    q: "You are comparing Arabica and Robusta crema. The Robusta shot has noticeably more crema that lasts longer in the cup. What causes this difference?",
+    options: [
+      "Robusta contains significantly more CO2 and emulsifying compounds — CO2 released during extraction is trapped as tiny bubbles in emulsified oils, forming crema",
+      "Robusta beans are oilier on the surface, which produces more foam when they meet hot water",
+      "The higher caffeine in Robusta reacts with water at pressure to produce foam as a by-product",
+      "Robusta is always ground finer in espresso blends, which mechanically produces more crema regardless of species"
+    ],
+    answer: 0,
+    explain: "Crema forms when CO2 released during extraction is trapped in emulsified oils at pressure. Robusta has significantly higher CO2 and specific emulsifying compounds, producing more crema that persists longer. This is why even small proportions of Robusta (10–30%) are added to many traditional Italian espresso blends." },
+
+  { cat: "Arabica vs Robusta",
+    q: "A customer has just tasted a Brazilian Arabica and an Indonesian Sumatran Arabica side by side and is surprised they taste so different. Both are Arabica — what explains this?",
+    options: [
+      "One must have been mislabelled — two Arabica coffees should taste very similar regardless of origin",
+      "The difference is purely down to roast level — Sumatran is always roasted darker, which changes the taste",
+      "Terroir — the combination of altitude, soil, rainfall, and climate in each region — creates fundamentally different flavour profiles even within the same species",
+      "Arabica from South America and Asia are technically different subspecies, so they taste different by definition"
+    ],
+    answer: 2,
+    explain: "Both are Arabica, but terroir — growing environment — creates profoundly different coffees. Brazilian Arabica tends toward chocolate, peanut, and low acidity from its lower altitude and natural processing. Sumatran Arabica is earthy, syrupy, and cedar-like from its wet-hulling process and volcanic soil. Same species, completely different expression." },
+
+  { cat: "Arabica vs Robusta",
+    q: "Arabica is described as tetraploid while Robusta is diploid. How does this genetic difference affect the plant in practical terms?",
+    options: [
+      "Tetraploid plants are physically larger — which is why Arabica trees grow taller than Robusta",
+      "The difference is only relevant to plant breeders — it has no bearing on cup quality or farm management",
+      "Having more chromosomes means Arabica extracts faster under pressure, requiring shorter shot times",
+      "Arabica can self-pollinate due to its genetic structure, giving more consistent flavour within a variety; Robusta cross-pollinates, making it genetically hardier but more unpredictable in flavour"
+    ],
+    answer: 3,
+    explain: "Arabica's tetraploid (4 chromosome sets) structure allows self-pollination, giving greater genetic stability and flavour consistency within a variety. Robusta is diploid (2 sets) and cross-pollinates, producing more genetic diversity — which contributes to its disease resistance but less predictable flavour. This genetic structure explains much of why the two species behave so differently." },
+
+  { cat: "Arabica vs Robusta",
+    q: "Instant coffee jars rarely mention Arabica on the label. Why is Robusta the dominant species in instant coffee production?",
+    options: [
+      "Robusta has more soluble solids per gram (higher extraction yield), lower cost to grow, and its higher caffeine content survives the drying process better — making it the economically rational choice",
+      "Arabica cannot survive the freeze-drying process — its oils break down completely, leaving no coffee flavour",
+      "Robusta naturally dissolves in water at room temperature, whereas Arabica requires hot water",
+      "Instant coffee regulations in most countries require Robusta for safety reasons related to caffeine stability"
+    ],
+    answer: 0,
+    explain: "Robusta extracts more soluble material per gram — meaning you get more coffee out of less bean. It is also significantly cheaper to grow and harvest. The higher caffeine content survives freeze-drying or spray-drying better than the more delicate aromatic compounds of Arabica. Arabica is too expensive and flavourfully fragile to use economically in instant production." },
+
+  { cat: "Espresso & Milk Method",
+    q: "You pull a shot and it runs in 22 seconds, yielding 36g. It tastes bright and acidic but hollow. Which adjustment should you make first?",
+    options: [
+      "Increase the dose from 18g to 20g to add more body",
+      "Grind finer — the shot is running too fast, causing under-extraction and a sour, hollow taste",
+      "Use hotter water to speed up the extraction of sweeter compounds",
+      "Reduce the yield to 30g so the shot concentrates quicker"
+    ],
+    answer: 1,
+    explain: "A 22-second shot is outside the 25–30 second target — it is running too fast. Fast extraction = under-extraction = sour, hollow, unbalanced. Grinding finer increases resistance, slows the flow, and gives water more time to extract the sweeter, complex compounds. Always adjust grind before changing dose or yield." },
+
+  { cat: "Espresso & Milk Method",
+    q: "You pull a shot at 18g in / 36g out but it takes 38 seconds and tastes bitter and dry. Your colleague suggests you should increase the dose to slow it down. What would you tell them?",
+    options: [
+      "They are right — adding more coffee always slows the shot and reduces bitterness",
+      "They are wrong — the only fix for a bitter shot is to lower the brew temperature by 2–3°C",
+      "They are partially right — increase dose and reduce yield simultaneously to balance it",
+      "They are wrong — a slow, bitter shot means over-extraction, and the fix is to grind coarser, not add more coffee"
+    ],
+    answer: 3,
+    explain: "A 38-second shot is too slow — that means over-extraction, which produces bitterness and dryness. The correct fix is to grind coarser, not increase the dose. Adding more coffee would create even more resistance and slow the shot further, making it worse. Sour = grind finer. Bitter = grind coarser. This is the core diagnostic rule." },
+
+  { cat: "Espresso & Milk Method",
+    q: "You lock in the portafilter and notice the shot is running unevenly — fast on the left side and slower on the right. What is most likely happening and what caused it?",
+    options: [
+      "Channelling — water has found a weak path through the puck, most likely caused by an uneven tamp or poor distribution",
+      "The grind is too coarse — water is flowing freely through oversized particles on both sides",
+      "The boiler pressure is fluctuating, causing inconsistent flow across the basket",
+      "The portafilter basket has a blocked hole on the right side, restricting flow"
+    ],
+    answer: 0,
+    explain: "Uneven flow from side to side is a classic sign of channelling — pressurised water has found a weak spot and is bypassing much of the coffee. This happens when grounds are unevenly distributed before tamping (so density varies across the puck) or when the tamp itself was angled. The coffee on the fast side will be under-extracted; the slow side, over-extracted." },
+
+  { cat: "Espresso & Milk Method",
+    q: "What is the correct espresso recipe used on your course, and what does the 1:2 yield ratio mean in practice?",
+    options: [
+      "15g in, 45g out — 1:3 ratio — meaning three times as much liquid as coffee",
+      "20g in, 20g out — 1:1 ratio — meaning the liquid weight equals the coffee weight",
+      "18g in, 36g out — 1:2 ratio — meaning for every gram of coffee you use, you produce two grams of liquid espresso",
+      "18g in, 54g out — 1:3 ratio — meaning the espresso is diluted to reduce bitterness"
+    ],
+    answer: 2,
+    explain: "Your course recipe is 18g of ground coffee in, 36g of liquid espresso out, in 25–30 seconds. The 1:2 ratio means for every 1g of coffee used, 2g of liquid is produced. This ratio defines the concentration and extraction level — going to 1:3 (54g out) produces a longer, more dilute shot; going to 1:1.5 (27g out) produces a shorter, sweeter ristretto." },
+
+  { cat: "Espresso & Milk Method",
+    q: "You are steaming milk for a latte and your colleague says you should keep introducing air throughout the whole steam. What would you tell them about this approach?",
+    options: [
+      "They are correct — continuous aeration creates the lightest, most stable foam for a latte",
+      "They are correct for a cappuccino but not a latte — a latte needs stiffer foam than a cappuccino",
+      "They are wrong — no air should ever be introduced during milk steaming; temperature alone creates foam",
+      "They are wrong — for a latte you introduce air for only the first 1–2 seconds, then submerge the wand to heat the milk without adding more air, creating silky microfoam"
+    ],
+    answer: 3,
+    explain: "Continuous aeration produces stiff, dry foam — right for a traditional cappuccino, wrong for a latte. A latte needs microfoam: silky, integrated, pourable. You achieve this by introducing air for just 1–2 seconds near the milk surface at the start, then submerging the wand tip to heat without adding more air. The milk and foam should move as one unit." },
+
+  { cat: "Espresso & Milk Method",
+    q: "You reach for the jug mid-steam and the base of the jug stings your hand. What does this tell you, and what should you do?",
+    options: [
+      "The milk has reached approximately 55–65°C — this is the sting point, and you should stop steaming now",
+      "The wand is too deep in the milk and you should pull it up toward the surface immediately",
+      "The jug is conducting too much heat from the steam wand and should be replaced with an insulated jug",
+      "The milk has scalded — it will need to be discarded and you should start again"
+    ],
+    answer: 0,
+    explain: "The sting point is the tactile temperature check taught on your course — when the base of the jug becomes too hot to hold comfortably, the milk has reached roughly 55–65°C. This is your cue to stop. It is a practical alternative to a thermometer. If it only feels warm, you have not reached temperature yet; if you can hold it for several seconds without discomfort, keep steaming." },
+
+  { cat: "Espresso & Milk Method",
+    q: "You purge the steam wand, wipe it with the correct cloth, and then step away to make a second drink. When you return to steam more milk three minutes later, what should you do before submerging the wand again?",
+    options: [
+      "Nothing — wiping the wand is sufficient and it stays clean between uses",
+      "Rinse the wand tip in cold water to cool it before the next use",
+      "Purge the wand again briefly to clear any condensed water that has collected inside since you last used it",
+      "Wipe the wand a second time with the blue cloth before submerging"
+    ],
+    answer: 2,
+    explain: "Condensation builds inside the steam wand whenever it sits idle — even a few minutes is enough. If you submerge without purging, that water goes into the milk, diluting it and destabilising your foam. Always purge before each use, not just at the start of the session." },
+
+  { cat: "Espresso & Milk Method",
+    q: "You pull a shot and get distracted — by the time you add milk, the shot has been sitting for 45 seconds. Your colleague says it will be fine. What do you do?",
+    options: [
+      "Use it — espresso stays fresh for up to 2 minutes if the crema is intact",
+      "Add a small amount of hot water to the shot to dilute the bitter compounds before adding milk",
+      "Add the milk and serve — the milk will reactivate the espresso and restore some of the lost aroma",
+      "Discard it and pull a fresh shot — CO2 and volatile aromatics degrade within seconds of extraction, and a 45-second-old shot will taste flat and bitter"
+    ],
+    answer: 3,
+    explain: "Espresso degrades rapidly. CO2 — which contributes to crema and mouthfeel — off-gasses within 10–20 seconds. The volatile aromatic compounds responsible for fruity and floral notes evaporate quickly. A 45-second-old shot will taste flat, stale, and bitter. Pull fresh and steam milk in parallel so both are ready simultaneously." },
+
+  { cat: "Espresso & Milk Method",
+    q: "A trainee reaches for the navy cloth to wipe the steam wand after steaming milk. What would you tell them?",
+    options: [
+      "They should use the yellow cloth — the navy cloth is designated for the basket, and using it on the steam wand could transfer coffee grounds into the next portion of milk",
+      "They should use the blue cloth for the steam wand and save the navy cloth for the counter",
+      "The navy cloth is fine for the steam wand — any microfibre cloth works the same way",
+      "They should use a paper towel instead of a microfibre cloth to avoid fibre contamination in milk"
+    ],
+    answer: 0,
+    explain: "The yellow cloth is for milk and the steam wand. The navy cloth is for the basket — it will have picked up coffee grounds and residue. Using the navy cloth on the steam wand risks transferring those grounds into the next drink's milk. Colour-coded cloths only work as a hygiene system if everyone uses each one correctly and consistently." },
+
+  { cat: "Machine Anatomy",
+    q: "You lock in the portafilter and notice water leaking from around the join between the portafilter and the group head during extraction. What component is most likely causing this?",
+    options: [
+      "The shower screen is blocked and pressure is being forced out sideways",
+      "The group head gasket — the rubber seal — has worn or has built-up residue preventing it from seating correctly",
+      "The portafilter basket has hairline cracks allowing water to escape under pressure",
+      "The solenoid valve is stuck open, allowing too much water pressure to build at the group head"
+    ],
+    answer: 1,
+    explain: "The group head gasket is a rubber seal that grips the portafilter to form a watertight connection under pressure. Worn gaskets or gaskets coated in old coffee grounds and oils will not seat cleanly, causing leaks. Regular brushing and wiping keeps it functional. Gaskets also wear out over time and need periodic replacement." },
+
+  { cat: "Machine Anatomy",
+    q: "Your shots have started tasting increasingly bitter and flat over the past few days despite consistent grind and dose. The machine has not been back-flushed all week. What is the most likely cause?",
+    options: [
+      "The coffee beans have gone stale as the bag has been open too long",
+      "The grinder burrs are becoming blunt and producing an inconsistent grind",
+      "Rancid coffee oils have accumulated in the group head and are contaminating every shot pulled through it",
+      "The boiler temperature has drifted upward, causing over-extraction across every shot"
+    ],
+    answer: 2,
+    explain: "Without back-flushing, coffee oils build up inside the group head — around the shower screen, gasket, and solenoid valve. These oils go rancid quickly and leach into every subsequent shot, contributing a bitter, dirty, slightly stale taste that no amount of grind adjustment will fix. Back-flushing with water daily and with machine cleaner regularly is essential maintenance." },
+
+  { cat: "Machine Anatomy",
+    q: "You are cleaning the group head with a brush at the end of a session. A classmate asks why you are bothering since you just ran water through it. What is your explanation?",
+    options: [
+      "Running water cleans the inside of the boiler — brushing is needed for the exterior which water cannot reach",
+      "The brush is used to check whether the shower screen is blocked, not to actively clean the group head",
+      "Brushing is only needed once a week — daily water flushes are sufficient for routine cleaning",
+      "Water alone cannot dislodge the compacted coffee grounds and oils caught around the gasket, shower screen, and group head edges — the brush physically removes them"
+    ],
+    answer: 3,
+    explain: "Water flushes dissolve loose residue, but compacted coffee grounds and oxidised oils cling to the gasket, the edges of the shower screen, and the group head cavity. A brush physically dislodges this residue. Skipping it allows grounds to build up, eventually affecting extraction uniformity and leaving a burnt, bitter taste in shots." },
+
+  { cat: "Machine Anatomy",
+    q: "The shots have started tasting uneven — slightly sourness on one side, bitterness on the other when you watch it from a bottomless portafilter. You have not changed your grind or dose. What component should you check first?",
+    options: [
+      "The shower screen — if partially clogged with coffee residue, it will distribute water unevenly across the puck",
+      "The pump — uneven pressure output would cause this pattern of over and under extraction",
+      "The portafilter spout — damage to the spout can cause flow to split unevenly",
+      "The grinder burrs — worn burrs produce bimodal particle distribution causing this flavour pattern"
+    ],
+    answer: 0,
+    explain: "The shower screen distributes water evenly across the surface of the coffee puck. If it is partially clogged with dried coffee residue, water will flow freely through clear holes and barely through blocked ones — creating uneven extraction. One side gets more water (bitter/over-extracted), the other less (sour/under-extracted). Regular brushing and rinsing of the shower screen prevents this." },
+
+  { cat: "Machine Anatomy",
+    q: "After dialling in at the start of the session, your shots gradually start running faster and tasting lighter over the next hour without you changing any settings. What is the most likely explanation?",
+    options: [
+      "The boiler is losing temperature as the session progresses, causing faster extraction",
+      "The coffee in the hopper is degassing — as CO2 releases from the resting beans, the grounds become less dense and offer less resistance",
+      "Stale retained grounds from the grinder's chute are contaminating doses as the session goes on",
+      "The pump pressure drops during sustained use due to motor heat buildup"
+    ],
+    answer: 1,
+    explain: "As coffee sits in the hopper and is ground repeatedly during a session, CO2 continues to off-gas from the beans. This makes the grounds slightly less dense, which reduces resistance in the puck and allows water to flow faster — resulting in faster, lighter, slightly under-extracted shots. This is a real phenomenon and another reason dialling in is an ongoing process, not a one-time task." },
+
+  { cat: "Machine Anatomy",
+    q: "A new student turns the espresso machine fully off at the end of the session. Why is this incorrect practice?",
+    options: [
+      "Turning the machine off risks draining the boiler completely, which causes pump damage on restart",
+      "The machine should be left on full heat overnight so it is ready at the start of the next session",
+      "Repeated full heating cycles from cold put thermal stress on boiler seals and components — the machine should be left in standby mode instead",
+      "Turning it off fully triggers an auto-descale cycle that wastes water and chemicals unnecessarily"
+    ],
+    answer: 2,
+    explain: "Espresso machine boilers operate at high, sustained temperatures. Taking them from cold to full operating temperature and back creates repeated thermal expansion and contraction. Over time this stresses boiler seals, welds, and fittings. Most professional machines have a standby or sleep mode designed for overnight use — this keeps components warm without wasting energy or stressing the machine." },
+
+  { cat: "Machine Anatomy",
+    q: "You are about to pull the first shot of the session. The portafilter has been stored away from the machine overnight. Why is this a problem, and what should you do?",
+    options: [
+      "The portafilter will be damp from humidity — wipe it dry before dosing to prevent the grounds clumping",
+      "The basket holes may have dried coffee in them from the last session — rinse in cold water first",
+      "Overnight storage means the portafilter basket may have warped — check it is level before tamping",
+      "A cold portafilter will drop the brew temperature the moment you lock it in, causing inconsistent extraction — flush it in the group head first to bring it to operating temperature"
+    ],
+    answer: 3,
+    explain: "A cold portafilter acts as a heat sink — the moment hot water meets the cold metal, temperature drops sharply and the brew temperature becomes unstable. This leads to inconsistent, typically under-extracted shots. Always flush the group head with water first (which also warms the portafilter locked inside it) before loading your grounds. Keeping the portafilter in the group head between shots is best practice." },
+
+  { cat: "Machine Anatomy",
+    q: "You adjust the grinder to a finer setting and pull the next shot. It runs at the same speed as before. What is the most likely reason, and what should you do?",
+    options: [
+      "Grind retention — the grounds from your previous setting are still in the chute. Purge a dose through first to clear them, then pull the adjusted shot",
+      "The burrs have become blunt and can no longer produce a finer grind — the grinder needs servicing",
+      "The adjustment collar has slipped back to the previous setting — re-check and reset it before pulling",
+      "Finer grind settings require more time to take effect — wait 60 seconds before pulling the next shot"
+    ],
+    answer: 0,
+    explain: "Grind retention is the coffee sitting inside the grinder between the burrs and the chute. When you adjust the setting, those old grounds are still at the previous setting and come out first. Pulling a shot immediately after adjusting means you are tasting the old grind, not the new one. Always purge a small amount through before evaluating the change." },
+
+  { cat: "Drink Types & Latte Art",
+    q: "A customer orders a flat white and you serve them what is essentially a small latte. They say it is too milky. What went wrong and how would you correct it next time?",
+    options: [
+      "You used full-fat milk instead of semi-skimmed — the higher fat content makes it taste richer and milkier",
+      "You used too much milk — a flat white uses 120–150ml with thin microfoam, not the 200–250ml used in a latte",
+      "You did not steam the milk hot enough — cooler milk tastes less integrated with the espresso and seems excessive",
+      "You added the milk before the espresso — reversing the order changes the drink's perceived strength"
+    ],
+    answer: 1,
+    explain: "A flat white uses a double shot with only 120–150ml of milk, served with thin microfoam — it should be strong and coffee-forward. A latte uses the same double shot with 200–250ml. If you served a flat white-sized cup but with latte-proportioned milk, the coffee-to-milk ratio would feel wrong and milky. The difference is entirely in milk volume and texture." },
+
+  { cat: "Drink Types & Latte Art",
+    q: "A customer is confused about the difference between an espresso macchiato and a latte macchiato — they both seem to have espresso and milk. What is the clearest way to explain the difference?",
+    options: [
+      "The difference is in temperature — an espresso macchiato is served hot, a latte macchiato is served warm",
+      "The difference is the type of milk — espresso macchiato uses whole milk foam, latte macchiato uses oat milk",
+      "Macchiato means stained. In an espresso macchiato, a small amount of foam stains the espresso. In a latte macchiato, espresso is poured into steamed milk, staining the milk — producing a much milkier, layered drink",
+      "An espresso macchiato uses one shot, a latte macchiato uses two — that is why the latte version is larger"
+    ],
+    answer: 2,
+    explain: "Macchiato means 'stained' in Italian. Which liquid does the staining determines the drink: an espresso macchiato is espresso stained with a small dollop of foam — tiny, strong, and barely softened. A latte macchiato is steamed milk stained by espresso poured through it — large, layered, and predominantly milky. The key is which goes in first." },
+
+  { cat: "Drink Types & Latte Art",
+    q: "You are making a cortado. A classmate asks why you use equal parts espresso and milk rather than more milk like a flat white. What is the correct explanation?",
+    options: [
+      "A cortado is made with less milk to save cost — it is a cheaper drink to produce than a flat white",
+      "Less milk is used because the cortado is served cold and milk expands too much if heated in larger quantities",
+      "Equal parts is the Italian standard — all Italian espresso drinks use a 1:1 ratio of coffee to milk",
+      "The word cortado means cut in Spanish — the milk cuts the espresso's intensity without overwhelming it. Equal parts means the coffee character stays dominant while the sharpness is softened"
+    ],
+    answer: 3,
+    explain: "Cortado comes from the Spanish 'cortar' — to cut. The warm milk softens the espresso's intensity without burying it under a large volume of milk. At a 1:1 ratio (roughly 60ml espresso / 60ml milk), the coffee flavour remains clearly dominant. It is a small, precise drink designed for people who want their espresso cut but not diluted." },
+
+  { cat: "Drink Types & Latte Art",
+    q: "You start pouring latte art and keep the jug high the whole time. The milk mixes into the espresso but no pattern forms on the surface. What did you do wrong?",
+    options: [
+      "You did not lower the jug close to the surface once the cup was half full — staying high makes the milk sink below the crema rather than floating on it",
+      "You poured too slowly — latte art requires a fast, forceful pour to push foam to the surface",
+      "Your milk was too cold — cold milk sinks faster and cannot form a pattern",
+      "You should have poured in a circular motion to spread the foam across the surface"
+    ],
+    answer: 0,
+    explain: "Pouring high throughout causes the milk to break through the crema and sink below it — mixing into the espresso rather than floating on top. The two-stage technique is essential: pour high first to incorporate milk into the shot, then once the cup is about half full, lower the jug close to the surface so the lighter foam floats on the crema. That is when the white pattern appears." },
+
+  { cat: "Drink Types & Latte Art",
+    q: "You pour a latte art heart but the shape looks more like a blob — the line through the middle is messy and the sides are uneven. You lowered the jug correctly. What else likely went wrong?",
+    options: [
+      "The cup was tilted at the wrong angle — it should always be held flat when pulling through",
+      "You pulled through before enough white had formed on the surface, so there was not enough foam to split cleanly into a heart shape",
+      "You were pouring too quickly — slowing down mid-pour always produces cleaner shapes",
+      "The espresso shot was too fresh — very fresh crema is too thick to allow latte art patterns to form"
+    ],
+    answer: 1,
+    explain: "Pulling through too early is one of the most common latte art mistakes. If you pull before a clear white circle has formed, there is not enough foam on the surface to divide into two distinct lobes. The pull-through splits the white circle to create the heart shape — but if the circle is too small or thin, the result is a shapeless blob. Wait until the white is prominent before pulling through." },
+
+  { cat: "Drink Types & Latte Art",
+    q: "You pull a good shot but wait two minutes before pouring the milk because the steam wand was occupied. When you pour, the latte art does not form at all — the milk just sinks in. What caused this?",
+    options: [
+      "The milk cooled too much while waiting — cool milk is too dense to float on the crema",
+      "The espresso concentrated further as water evaporated, making it too thick for milk to penetrate",
+      "The crema broke down during the wait — without a solid crema layer, there is no surface for the foam to float on and create contrast",
+      "Waiting causes the espresso to over-extract, making it too bitter for milk proteins to bond with"
+    ],
+    answer: 2,
+    explain: "Crema is fragile — it begins breaking down within 20–30 seconds of extraction as CO2 escapes and the emulsion destabilises. After two minutes there is little to no crema left. Since crema acts as the canvas for latte art (the foam floats on top of it), its absence means the milk just mixes straight in with no pattern. Always steam milk in parallel with pulling the shot." },
+
+  { cat: "Drink Types & Latte Art",
+    q: "A customer orders a ristretto. Your colleague makes it with 18g in and 54g out, arguing that more yield makes it stronger. What would you tell them?",
+    options: [
+      "They are correct — a larger yield always produces a stronger, more concentrated drink",
+      "They are wrong, but the fix is to reduce the dose to 12g rather than change the yield",
+      "They are partially right — 54g is correct for a ristretto if you compensate with a finer grind",
+      "They are wrong — a ristretto uses the same dose (18g) but a much shorter yield of around 20g, not more. More yield produces a lungo, not a ristretto"
+    ],
+    answer: 3,
+    explain: "A ristretto means restricted — same dose, but extraction is stopped much earlier, typically around 20g of liquid out (a 1:1 ratio rather than 1:2). This produces a shorter, sweeter, more concentrated shot because fewer of the later-extracted bitter compounds make it into the cup. 54g out is a lungo — the opposite of a ristretto. More yield = more dilute and more bitter, not stronger." },
+
+  { cat: "Cleandown",
+    q: "During service you steam milk and then immediately reach for the blue cloth to wipe the steam wand. Your trainer stops you. Why?",
+    options: [
+      "The blue cloth is for the counter — using it on the steam wand would transfer surface bacteria and counter residue into the next customer's milk",
+      "The blue cloth is only for use during cleandown, not during service",
+      "You should not wipe the wand at all during service — only purge it",
+      "The blue cloth should be used for wiping the exterior of the machine, not the steam wand"
+    ],
+    answer: 0,
+    explain: "The yellow cloth is for milk and the steam wand. The blue cloth is for the counter top. Using the blue cloth on the steam wand would transfer whatever is on the counter — crumbs, spills, bacteria — directly onto the steam wand, which then contacts milk going into a customer's drink. Colour coding only works as a hygiene system if everyone follows it without exception." },
+
+  { cat: "Cleandown",
+    q: "At the end of a session, the assigned allocator gives you the task of cleaning the espresso machine. You start by wiping the exterior. Your trainer asks why you are not starting with the group head. What is the correct reasoning?",
+    options: [
+      "The exterior must be cleaned first because customer-facing surfaces are the highest hygiene priority",
+      "It does not matter where you start — all surfaces will be clean by the end regardless of order",
+      "You should start with the most contaminated areas first — brush and flush the group head, then clean the portafilter via the machine, then work outward to less contaminated surfaces like the drip tray and exterior",
+      "Exterior cleaning requires chemicals that must fully dry before you clean near the group head to avoid contamination"
+    ],
+    answer: 2,
+    explain: "Cleaning should move from most contaminated to least. The group head, shower screen, and portafilter carry the heaviest coffee residue and oil build-up. Cleaning the exterior first and then going back to the group head risks recontaminating surfaces you have already wiped. Brush and flush the group head first, then clean the portafilter using the machine, then drip tray, then exterior." },
+
+  { cat: "Cleandown",
+    q: "You are cleaning the portafilter at the end of a session. What is the correct method according to your course?",
+    options: [
+      "Disassemble the basket from the portafilter and wash both separately in hot soapy water in the sink",
+      "Soak the portafilter basket in hot water for five minutes, then rinse and air dry",
+      "Wipe the inside of the basket with the navy cloth until all coffee residue is removed",
+      "Lock the portafilter into the group head and run water through the machine to flush residue out through the basket"
+    ],
+    answer: 3,
+    explain: "The portafilter is cleaned using the machine itself — lock it in and run water through the group head to flush residue out through the basket. This removes loose grounds and oils effectively. The navy cloth is for the basket during service (knocking out the puck), not for scrubbing it clean at the end of a session." },
+
+  { cat: "Cleandown",
+    q: "The allocator assigns you to clean the toilets during cleandown. You notice they are reasonably clean and decide to skip it and help with something else. What is wrong with this decision?",
+    options: [
+      "Nothing — using judgment about which tasks need doing is exactly what good teamwork looks like",
+      "Cleandown tasks are assigned and expected to be completed regardless of apparent condition — skipping a task without checking with the allocator undermines the system and may leave the space below standard",
+      "It is acceptable to skip cleaning if you replace it with a more time-consuming task like mopping the floor twice",
+      "The allocator can only assign tasks — they cannot enforce them, so you are within your rights to make this call"
+    ],
+    answer: 1,
+    explain: "The cleandown system works because every assigned task is completed every time. Toilets may look clean but still harbour bacteria on touch surfaces. Skipping a task without informing the allocator also leaves that responsibility unaccounted for — in a real café, this would be a hygiene and accountability failure. If you think a task does not need doing, raise it with the allocator rather than simply moving on." },
+
+  { cat: "Cleandown",
+    q: "You have been assigned as the allocator for today's cleandown. Two people arrive late and there are six tasks: bins, toilets, sweeping, classroom, two machines. How should you approach the allocation?",
+    options: [
+      "Divide the six tasks fairly among everyone present, considering efficiency — pair people on the two machines if needed, and communicate the plan clearly before anyone starts",
+      "Do all six tasks yourself since you are the allocator and responsible for the outcome",
+      "Assign the two late arrivals the least desirable tasks as a consequence of being late",
+      "Wait until everyone is present before allocating any tasks, even if this delays the cleandown significantly"
+    ],
+    answer: 0,
+    explain: "The allocator's job is to distribute tasks fairly and efficiently, not to punish or take on everything personally. With six tasks and some people arriving late, the practical approach is to allocate sensibly — perhaps pairing on machines — and communicate clearly so everyone knows what they are doing. The allocator role mirrors a supervisor's closing responsibilities in a real café." },
+
+  { cat: "Cleandown",
+    q: "You have finished sweeping the classroom floor and there is a pile of debris near the door. The next task is starting, so you leave the pile to deal with later. Why is this a problem?",
+    options: [
+      "The pile might spread back across the floor if there is a draught, undoing your work",
+      "It is only a problem if the debris contains coffee grounds — dry dust poses no real hazard",
+      "Leaving the pile is acceptable if you inform the allocator so someone else can finish it",
+      "A pile of swept debris is a slip hazard, a hygiene issue in a food learning environment, and sweeping is not complete until debris is collected and disposed of in the bin"
+    ],
+    answer: 3,
+    explain: "Sweeping is only done when the debris is collected and binned — not when it is in a pile on the floor. A pile of debris is a slip hazard (especially on a hard floor with coffee grounds or liquid), and in any food environment, swept material must be disposed of hygienically. Walking away from a pile and calling the task done is incomplete work." },
+
+  { cat: "Cleandown",
+    q: "At the end of the session the bin liner is only half full. A classmate suggests leaving it until next time to avoid wasting a bin liner. What should you do?",
+    options: [
+      "Agree — half-full bins are fine to leave if they do not contain liquid or strong-smelling waste",
+      "Leave it but tie the top of the liner closed to contain any odours until the next session",
+      "Empty and replace the bin liner — any coffee grounds, milk residue, or food waste left overnight will develop bacteria, produce odours, and attract pests regardless of how full the liner is",
+      "Leave the bin but remove only the milk-contaminated waste by hand to reduce the hygiene risk"
+    ],
+    answer: 2,
+    explain: "In a food environment, bins must be emptied at the end of every session regardless of how full they are. Coffee grounds and milk residue begin growing bacteria and mould within hours. A tied bag still contains the material — it does not stop bacterial growth, just traps the smell temporarily. The hygiene rule is clear: empty and reline every time." },
+
+  { cat: "Cleandown",
+    q: "After cleandown you notice the classroom has been tidied but the tables still have coffee cup rings and minor splashes on them. The person assigned to the classroom says it looks fine. How do you respond?",
+    options: [
+      "Point out that surface cleanliness is part of the classroom task — residue on tables is unhygienic and reflects poorly on the group. The tables should be wiped down properly before sign-off",
+      "Agree — the classroom is not a food preparation area, so coffee rings on tables are acceptable",
+      "Leave it and mention it to the trainer rather than raising it directly with your classmate",
+      "Wipe the tables yourself without saying anything to avoid conflict"
+    ],
+    answer: 0,
+    explain: "Cleandown includes properly cleaning all assigned surfaces — not just making them look tidy at a glance. Coffee residue on tables is a hygiene issue and sets a poor standard. Raising it directly and constructively with your classmate is the right approach — this mirrors how a barista team should self-manage closing standards in a professional café. The tables should be wiped before sign-off." },
+
+  { cat: "Cleandown",
+    q: "Why does your course include classroom cleaning and toilet cleaning as part of the barista cleandown, rather than leaving these for a separate cleaning team?",
+    options: [
+      "The course does not have a budget for a separate cleaning team, so students cover these tasks out of necessity",
+      "These tasks build the professional habit of taking full environmental responsibility — in a real café, baristas close down the entire space, not just the equipment",
+      "Classroom and toilet cleaning are covered by food hygiene law and must be done by the people who used the space",
+      "It is a way of testing whether students are willing to do unpleasant tasks before being considered for barista roles"
+    ],
+    answer: 1,
+    explain: "Including the full environment in cleandown is deliberate. In a real café, closing staff are responsible for the entire space — floors, toilets, surfaces, bins, and equipment. Learning to take that full responsibility from the start builds the professional attitude that employers expect. A barista who only cleans their machine but ignores the rest of the space is not doing their job." }
+
+];
+
+// ── STATE ──
+const CATEGORIES = [
+  { key: "Arabica vs Robusta", label: "Arabica vs Robusta" },
+  { key: "Espresso & Milk Method", label: "Espresso & Milk Method" },
+  { key: "Machine Anatomy", label: "Machine Anatomy" },
+  { key: "Drink Types & Latte Art", label: "Drink Types & Latte Art" },
+  { key: "Cleandown", label: "Cleandown" },
+];
+
+let selectedCats = new Set();
+let quizQuestions = [];
+let currentIdx = 0;
+let score = 0;
+let answered = false;
+let catScores = {};
+let catTotals = {};
+
+// ── INIT ──
+function init() {
+  const grid = document.getElementById('cat-grid');
+  CATEGORIES.forEach(cat => {
+    const count = allQuestions.filter(q => q.cat === cat.key).length;
+    const card = document.createElement('div');
+    card.className = 'cat-card';
+    card.innerHTML = `
+      <div class="cat-check">✓</div>
+      <div class="cat-name">${cat.label}</div>
+      <div class="cat-count">${count} questions</div>
+    `;
+    card.onclick = () => toggleCat(cat.key, card);
+    grid.appendChild(card);
+  });
+}
+
+function toggleCat(key, el) {
+  if (selectedCats.has(key)) {
+    selectedCats.delete(key);
+    el.classList.remove('selected');
+  } else {
+    selectedCats.add(key);
+    el.classList.add('selected');
+  }
+  updateStartBtn();
+}
+
+function updateStartBtn() {
+  const total = [...selectedCats].reduce((s, k) => s + allQuestions.filter(q => q.cat === k).length, 0);
+  const btn = document.getElementById('start-btn');
+  const label = document.getElementById('q-count-label');
+  if (selectedCats.size === 0) {
+    btn.disabled = true;
+    label.textContent = '— select categories above —';
+  } else {
+    btn.disabled = false;
+    label.textContent = `${total} question${total !== 1 ? 's' : ''} across ${selectedCats.size} categor${selectedCats.size !== 1 ? 'ies' : 'y'}`;
+  }
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function startQuiz() {
+  quizQuestions = shuffle(allQuestions.filter(q => selectedCats.has(q.cat)));
+  currentIdx = 0;
+  score = 0;
+  catScores = {};
+  catTotals = {};
+  selectedCats.forEach(k => { catScores[k] = 0; catTotals[k] = 0; });
+  quizQuestions.forEach(q => catTotals[q.cat] = (catTotals[q.cat] || 0) + 1);
+
+  showScreen('quiz-screen');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = quizQuestions[currentIdx];
+  answered = false;
+
+  document.getElementById('q-counter').textContent = `Question ${currentIdx + 1} of ${quizQuestions.length}`;
+  document.getElementById('score-display').textContent = `${score} / ${currentIdx}`;
+  document.getElementById('progress-bar').style.width = `${(currentIdx / quizQuestions.length) * 100}%`;
+  document.getElementById('q-cat-label').textContent = q.cat;
+  document.getElementById('question-text').textContent = q.q;
+
+  const fb = document.getElementById('feedback-box');
+  fb.className = 'feedback-box';
+  document.getElementById('feedback-body').textContent = '';
+
+  const nextBtn = document.getElementById('next-btn');
+  nextBtn.classList.remove('visible');
+  nextBtn.textContent = currentIdx === quizQuestions.length - 1 ? 'See Results →' : 'Next →';
+
+  const container = document.getElementById('options-container');
+  container.innerHTML = '';
+  const letters = ['A', 'B', 'C', 'D'];
+
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option';
+    btn.innerHTML = `<span class="option-letter">${letters[i]}</span><span>${opt}</span>`;
+    btn.onclick = () => selectAnswer(i);
+    container.appendChild(btn);
+  });
+}
+
+function selectAnswer(chosen) {
+  if (answered) return;
+  answered = true;
+
+  const q = quizQuestions[currentIdx];
+  const isCorrect = chosen === q.answer;
+  const btns = document.querySelectorAll('.option');
+  const letters = ['A', 'B', 'C', 'D'];
+
+  btns.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.answer) btn.classList.add('correct');
+    else if (i === chosen && !isCorrect) btn.classList.add('wrong');
+    else btn.classList.add('dimmed');
+  });
+
+  const fb = document.getElementById('feedback-box');
+  const fbLabel = document.getElementById('feedback-label');
+  const fbBody = document.getElementById('feedback-body');
+
+  if (isCorrect) {
+    score++;
+    catScores[q.cat] = (catScores[q.cat] || 0) + 1;
+    fb.className = 'feedback-box correct-fb';
+    fbLabel.textContent = 'Correct';
+  } else {
+    fb.className = 'feedback-box wrong-fb';
+    fbLabel.textContent = `Incorrect — the answer was ${letters[q.answer]}`;
+  }
+
+  fbBody.textContent = q.explain;
+  document.getElementById('next-btn').classList.add('visible');
+}
+
+function nextQuestion() {
+  currentIdx++;
+  if (currentIdx >= quizQuestions.length) {
+    showResults();
+  } else {
+    renderQuestion();
+  }
+}
+
+function showResults() {
+  document.getElementById('final-score').textContent = score;
+  document.getElementById('final-total').textContent = `of ${quizQuestions.length} correct`;
+
+  const pct = score / quizQuestions.length;
+  let msg;
+  if (pct === 1) msg = "Perfect score. You genuinely know your stuff — that kind of knowledge will show behind the bar.";
+  else if (pct >= 0.8) msg = "Really strong result. A couple of gaps to revisit, but you have a solid foundation.";
+  else if (pct >= 0.6) msg = "Good start. The core ideas are there — go back over the weaker categories and you'll get there.";
+  else if (pct >= 0.4) msg = "Plenty to build on. Focus on the categories where you dropped the most points and try again.";
+  else msg = "Don't worry — this is exactly what practice is for. Go back to the flashcards and try again.";
+
+  document.getElementById('result-message').textContent = msg;
+
+  const breakdown = document.getElementById('cat-breakdown');
+  breakdown.innerHTML = '';
+  selectedCats.forEach(k => {
+    const s = catScores[k] || 0;
+    const t = catTotals[k] || 1;
+    const pct = Math.round((s / t) * 100);
+    const row = document.createElement('div');
+    row.className = 'cat-row';
+    row.innerHTML = `
+      <div class="cat-row-name">${k}</div>
+      <div class="cat-bar-wrap"><div class="cat-bar-fill" style="width:0%" data-pct="${pct}"></div></div>
+      <div class="cat-row-score">${s}/${t}</div>
+    `;
+    breakdown.appendChild(row);
+  });
+
+  showScreen('results-screen');
+
+  setTimeout(() => {
+    document.querySelectorAll('.cat-bar-fill').forEach(el => {
+      el.style.width = el.dataset.pct + '%';
+    });
+  }, 100);
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function restartSame() {
+  startQuiz();
+}
+
+function backToStart() {
+  showScreen('start-screen');
+}
+
+init();
+</script>
+</body>
+</html>
